@@ -150,68 +150,88 @@ Submit selected schedule to grid operator
 ```mermaid
 flowchart TD
 
-    subgraph Sources["Data Sources (Local Only)"]
-        S1[Actual Power Measurements]
-        S2[FSP Schedule Forecasts - 4 Providers]
-        S3[Plant Metadata and Topology]
+    %% ── Colour palette ───────────────────────────────────────────────────────
+    classDef srcStyle    fill:#1B2B4B,stroke:#4A9FE0,stroke-width:2px,color:#D6EAF8,font-weight:bold
+    classDef ingestStyle fill:#0D3B3B,stroke:#26A69A,stroke-width:2px,color:#E0F2F1
+    classDef featStyle   fill:#2D1B4E,stroke:#9B59B6,stroke-width:2px,color:#F5EEF8
+    classDef splitStyle  fill:#1B3B1B,stroke:#52BE80,stroke-width:2px,color:#EAFAF1
+    classDef ridgeStyle  fill:#2B1500,stroke:#E59866,stroke-width:2px,color:#FAE5D3
+    classDef lgbmStyle   fill:#2B1500,stroke:#F39C12,stroke-width:2px,color:#FEF9E7
+    classDef ensStyle    fill:#3B0000,stroke:#E74C3C,stroke-width:3px,color:#FADBD8,font-weight:bold
+    classDef inferStyle  fill:#0D1F3B,stroke:#3498DB,stroke-width:2px,color:#D6EAF8
+    classDef appStyle    fill:#1A0D3B,stroke:#8E44AD,stroke-width:2px,color:#E8DAEF
+    classDef cfgStyle    fill:#2B2A00,stroke:#D4AC0D,stroke-width:2px,color:#FEF9E7
+
+    %% ── Data Sources ─────────────────────────────────────────────────────────
+    subgraph SRC["  DATA SOURCES   —   local only, never committed to Git"]
+        direction LR
+        S1[("Actual Power\nMeasurements")]:::srcStyle
+        S2[("FSP Schedule Forecasts\n4 Providers")]:::srcStyle
+        S3[("Plant Metadata\n& Topology")]:::srcStyle
     end
 
-    subgraph Ingestion["Data Ingestion"]
-        I1["csv_to_parquet.py
-Per-plant conversion"]
-        I2["preprocessing.py
-Validation and pivoting"]
-        I3["plant_topology_classifier.py
-Coastal / Plateau / Western Ghats"]
+    %% ── Ingestion ────────────────────────────────────────────────────────────
+    subgraph ING["  INGESTION   —   CSV to Parquet · Validation · Topology Classification"]
+        direction LR
+        I1["csv_to_parquet.py\nper-plant conversion"]:::ingestStyle
+        I2["preprocessing.py\nvalidation & pivoting"]:::ingestStyle
+        I3["topology_classifier.py\nCoastal / Plateau / W. Ghats"]:::ingestStyle
+        I1 --> I2 --> I3
     end
 
-    subgraph Features["Feature Engineering"]
-        F1[Hour, Day, Month, Season Cyclicals]
-        F2[Rolling 24-block Lookback Window]
-        F3[FSP Error Trajectory Features]
-        F4[Plant Topology Category]
-        F5[Variance Regime Classification]
+    %% ── Feature Engineering ──────────────────────────────────────────────────
+    subgraph FE["  FEATURE ENGINEERING"]
+        direction LR
+        F1["Time Cyclicals\nHour · Day · Month · Season"]:::featStyle
+        F2["Rolling Window  24 blocks\n6-hr lag & rolling std"]:::featStyle
+        F3["FSP Error Trajectory\nrecent over / under-forecast bias"]:::featStyle
+        F4["Topology & Variance Regime\ncategorical encoding"]:::featStyle
     end
 
-    subgraph Split["Temporal Split"]
-        SP1["Train 70%
-Historical data"]
-        SP2["Validation 15%
-Hyperparameter selection"]
-        SP3["Test 15%
-Final evaluation"]
+    %% ── Temporal Split ───────────────────────────────────────────────────────
+    subgraph SPL["  TEMPORAL SPLIT   —   strict time order, no shuffling"]
+        direction LR
+        SP1[/"Train  70%\nhistorical baseline"/]:::splitStyle
+        SP2[/"Validation  15%\nhyperparameter tuning"/]:::splitStyle
+        SP3[/"Test  15%\nfinal held-out evaluation"/]:::splitStyle
     end
 
-    subgraph Models["Model Training"]
-        M1["Ridge Regression
-Scaled features, alpha=1.0
-Weight: 40%"]
-        M2["LightGBM
-Raw features, 200 estimators
-Weight: 60%"]
-        M3["Weighted Ensemble
-0.4 * Ridge + 0.6 * LightGBM"]
-        M1 --> M3
-        M2 --> M3
+    %% ── Model Training ───────────────────────────────────────────────────────
+    subgraph MDL["  MODEL TRAINING"]
+        M1["Ridge Regression\nscaled features  ·  alpha 1.0\nweight  40%"]:::ridgeStyle
+        M2["LightGBM\nraw features  ·  200 estimators\nweight  60%"]:::lgbmStyle
+        ENS{{"Weighted Ensemble\n0.4 × Ridge   +   0.6 × LightGBM"}}:::ensStyle
+        M1 --> ENS
+        M2 --> ENS
     end
 
-    subgraph Inference["Inference and Selection"]
-        IS1[Predict power per block]
-        IS2[Compare prediction to each FSP forecast]
-        IS3[Select FSP with minimum absolute deviation]
+    %% ── Inference & Selection ────────────────────────────────────────────────
+    subgraph INF["  INFERENCE & FSP SELECTION   —   per 15-minute scheduling block"]
+        direction LR
+        IS1["Predict power output\nfor next block"]:::inferStyle
+        IS2["Score each FSP\n|FSP forecast − ML prediction|"]:::inferStyle
+        IS3["Select minimum-error FSP\nsubmit to grid"]:::inferStyle
+        IS1 --> IS2 --> IS3
     end
 
-    subgraph Apps["Applications"]
-        AP1["streamlit_app.py
-Step-by-step ML workflow"]
-        AP2["operational_app.py
-Live operational dashboard"]
-        AP3["RAG Chatbot
-Ollama qwen3:8b
-Forecast insights on demand"]
+    %% ── Applications ─────────────────────────────────────────────────────────
+    subgraph APP["  APPLICATIONS"]
+        direction LR
+        AP1(["Modular Workflow App\nstreamlit_app.py"]):::appStyle
+        AP2(["Operational Dashboard\noperational_app.py"]):::appStyle
+        AP3(["RAG Chatbot\nOllama  ·  qwen3:8b\nforecast insights on demand"]):::appStyle
     end
 
-    Sources --> Ingestion --> Features --> Split --> Models --> Inference --> Apps
+    %% ── Configuration (cross-cutting concern) ────────────────────────────────
+    CFG(["Configuration\nconfig.yaml  ·  topology_config.yaml"]):::cfgStyle
+
+    %% ── Main pipeline flow ───────────────────────────────────────────────────
+    SRC --> ING --> FE --> SPL --> MDL --> INF --> APP
+
+    %% ── Config feeds into relevant stages ────────────────────────────────────
+    CFG --> ING
+    CFG --> MDL
+    CFG --> INF
 ```
 
 ---
