@@ -1,0 +1,227 @@
+# =============================================================================
+# FSP Scheduler Configuration
+# =============================================================================
+# FSP Scheduling Optimization Project Configuration
+# Single source of truth for all hyperparameters and settings
+
+# =============================================================================
+# Data Configuration
+# =============================================================================
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  interim_dir: "data/interim"
+
+  # CSV file names
+  csv_files:
+    actual: "actualdata.csv"
+    schedule: "scheduledata.csv"
+    forecast: "forecastdata.csv"
+
+# =============================================================================
+# Model Training Configuration
+# =============================================================================
+training:
+  # Data split ratios (must sum to 1.0)
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+
+  # Data filter
+  data_months: 24  # Use only last 24 months of data
+
+  # Random seed for reproducibility
+  random_seed: 42
+
+  # FSP Switching Configuration
+  prediction_horizon: 6  # Number of blocks ahead to predict/switch FSP
+  lookback_window: 24    # Number of past blocks to use as features
+
+  # Sequence length for LSTM/GRU models
+  sequence_length: 24    # 6 hours of history (24 blocks * 15 min)
+
+  # Missing data handling
+  missing_data_strategy: "drop"  # Options: "drop", "interpolate"
+  max_missing_pct: 10.0          # Max % missing before dropping entire day
+
+# =============================================================================
+# Available FSP Providers
+# =============================================================================
+fsp_providers:
+  - FA_PROVIDER_A
+  - FA_PROVIDER_B
+  - FA_PROVIDER_C
+  - FA_PROVIDER_D
+
+# =============================================================================
+# Model Configurations
+# =============================================================================
+models:
+  # Ridge Regression (baseline)
+  ridge:
+    alpha: 1.0
+
+  # Random Forest
+  random_forest:
+    n_estimators: 200
+    max_depth: 15
+    min_samples_split: 5
+    min_samples_leaf: 2
+    n_jobs: -1
+
+  # XGBoost
+  xgboost:
+    n_estimators: 200
+    max_depth: 8
+    learning_rate: 0.05
+    subsample: 0.8
+    colsample_bytree: 0.8
+    reg_alpha: 0.1
+    reg_lambda: 1.0
+
+  # LightGBM
+  lightgbm:
+    n_estimators: 200
+    max_depth: 10
+    learning_rate: 0.05
+    num_leaves: 31
+    subsample: 0.8
+    colsample_bytree: 0.8
+
+  # LSTM Model
+  lstm:
+    units: [128, 64]
+    dropout_rate: 0.3
+    recurrent_dropout: 0.2
+    learning_rate: 0.001
+    epochs: 150
+    batch_size: 64
+    early_stopping_patience: 15
+    reduce_lr_patience: 5
+    reduce_lr_factor: 0.5
+
+  # BiGRU-CNN Hybrid Model
+  bigru_cnn:
+    gru_units: [64, 32]
+    cnn_filters: 64
+    cnn_kernel_size: 3
+    dropout_rate: 0.3
+    learning_rate: 0.001
+    epochs: 150
+    batch_size: 64
+    early_stopping_patience: 15
+    reduce_lr_patience: 5
+    reduce_lr_factor: 0.5
+
+  # Ensemble Configuration
+  ensemble:
+    use_ensemble: true
+    models_to_ensemble:
+      - xgboost
+      - lightgbm
+      - lstm
+    optimization_metric: "mae"
+
+# =============================================================================
+# Hyperparameter Tuning Configuration
+# =============================================================================
+hyperparameter_tuning:
+  enabled: true
+  n_splits: 5              # TimeSeriesSplit folds
+  n_trials: 50             # Number of Optuna trials
+  timeout: 3600            # Max seconds for tuning
+
+  # Search spaces (used by Optuna)
+  search_spaces:
+    xgboost:
+      n_estimators: [100, 500]
+      max_depth: [4, 12]
+      learning_rate: [0.01, 0.2]
+      subsample: [0.6, 1.0]
+    lightgbm:
+      n_estimators: [100, 500]
+      max_depth: [4, 15]
+      learning_rate: [0.01, 0.2]
+      num_leaves: [15, 63]
+    lstm:
+      units_1: [64, 256]
+      units_2: [32, 128]
+      dropout: [0.1, 0.5]
+      learning_rate: [0.0001, 0.01]
+
+# =============================================================================
+# Output Configuration
+# =============================================================================
+outputs:
+  plots_dir: "outputs/plots"
+  models_dir: "outputs/models"
+  predictions_dir: "outputs/predictions"
+  reports_dir: "outputs/reports"
+
+  # CSV Output columns (required in all prediction outputs)
+  csv_columns:
+    - timestamp
+    - date
+    - block
+    - actual_power
+    - manual_scheduled_power
+    - fsp_provider_a_power
+    - fsp_provider_b_power
+    - fsp_provider_c_power
+    - fsp_provider_e_power
+    - ml_selected_fsp
+    - ml_predicted_power
+    - model_version
+    - selection_confidence
+
+# =============================================================================
+# Analysis Configuration
+# =============================================================================
+analysis:
+  # Data gap threshold (percentage)
+  gap_threshold_percent: 5.0
+
+  # FSP breach tolerance (MW)
+  breach_tolerance_mw: 15.0
+
+  # Penalty band percentages
+  penalty_bands:
+    - 15  # 15%
+    - 25  # 25%
+
+# =============================================================================
+# MLflow Tracking Configuration
+# =============================================================================
+mlflow:
+  enabled: true
+  tracking_uri: "mlruns"
+  experiment_name: "fsp_switching"
+  log_models: true
+  log_artifacts: true
+
+# =============================================================================
+# Model Versioning
+# =============================================================================
+versioning:
+  version_format: "v{major}.{minor}.{patch}"
+  current_version: "1.0.0"
+  auto_increment: true
+
+# =============================================================================
+# Visualization Configuration
+# =============================================================================
+visualization:
+  figure_size: [14, 6]
+  style: "seaborn-v0_8-whitegrid"
+  color_palette: "husl"
+  dpi: 150
+
+  # FSP Colors for plots
+  fsp_colors:
+    FA_PROVIDER_A: "#9b59b6"
+    FA_PROVIDER_B: "#f39c12"
+    FA_PROVIDER_C: "#1abc9c"
+    FA_PROVIDER_E: "#3498db"
+    actual: "#2ecc71"
+    scheduled: "#e74c3c"
+    predicted: "#34495e"

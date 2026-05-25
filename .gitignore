@@ -1,0 +1,100 @@
+# Python caches and build output
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+sdist/
+wheels/
+*.egg-info/
+.eggs/
+*.egg
+
+# Virtual environments
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+env/
+ENV/
+
+# IDE and local tooling
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+*~
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+logs/
+
+# Local notebooks and scratch work
+/notebooks/
+/temp_tests/
+/plans/
+/skills/
+
+# Company data, datasets, and generated data products
+/data/
+/perf_rpt/
+*.csv
+*.tsv
+*.parquet
+*.xlsx
+*.xls
+*.xlsm
+*.jsonl
+
+# Trained models, experiment tracking, and generated ML artifacts
+/outputs/
+/model_savesss/
+/mlruns/
+*.pkl
+*.joblib
+*.h5
+*.hdf5
+*.keras
+*.onnx
+*.pt
+*.pth
+
+# Local/generated reports and internal working documents
+/reports/
+DOD*.md
+PROPOSAL.md
+PROJECT_REPORT.md
+Report.md
+REPORT_Previous.md
+DSM_*.md
+OLLAMA_INSIGHTS_README.md
+OPERATIONAL_APP_README.md
+STREAMLIT_APP_README.md
+STREAMLIT_IMPLEMENTATION_SUMMARY.md
+
+# Local generated visual exports
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.html
+gkfs_deviation_band_configs_*.json
+plant_performance_results.json
+temp_data.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Streamlit secrets
+.streamlit/secrets.toml

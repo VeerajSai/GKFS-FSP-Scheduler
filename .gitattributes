@@ -1,0 +1,22 @@
+* text=auto
+
+*.py text eol=lf
+*.md text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.txt text eol=lf
+*.json text eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.xlsx binary
+*.xls binary
+*.parquet binary
+*.pkl binary
+*.joblib binary
+*.h5 binary
+*.hdf5 binary
+*.keras binary

@@ -1,0 +1,50 @@
+# =============================================================================
+# Wind Plant Topology Classification Configuration
+# =============================================================================
+# Configuration for classifying wind plants into topological categories
+# (Coastal Side, Plateau, Western Ghats) based on geographic boundaries
+# and elevation data.
+
+topology:
+  # Input/Output paths
+  excel_path: "plant_details.xlsx"
+  output_path: "data/processed/plant_topology_classifications.csv"
+  elevation_cache_path: "data/interim/elevation_cache.json"
+
+  # Elevation thresholds (meters above sea level)
+  # Used to distinguish between different topological categories
+  elevation_thresholds:
+    coastal_max_elevation: 100.0      # Maximum elevation for coastal classification
+    plateau_min_elevation: 100.0      # Minimum elevation for plateau
+    plateau_max_elevation: 500.0      # Maximum elevation for plateau
+    western_ghats_min_elevation: 500.0  # Minimum elevation for Western Ghats
+
+  # Geographic boundaries for Western Ghats region
+  # Western Ghats is a mountain range along the western coast of India
+  western_ghats:
+    latitude_range: [8.0, 21.0]   # 8N to 21N (approximately)
+    longitude_range: [73.0, 77.0] # 73E to 77E (approximately)
+
+  # Coastal classification parameters
+  coastal:
+    distance_threshold_km: 50.0  # Maximum distance from coast (km) for coastal classification
+
+  # Elevation API settings
+  elevation_api:
+    url: "https://api.open-elevation.com/api/v1/lookup"
+    request_delay_seconds: 0.1    # Delay between API calls to avoid rate limiting
+    max_retries: 3                # Maximum retry attempts for failed API calls
+    timeout_seconds: 10            # Request timeout in seconds
+
+  # Classification rules priority
+  # The classifier uses a hybrid approach:
+  # 1. First checks if location is in Western Ghats geographic boundary
+  # 2. Fetches elevation data (if available)
+  # 3. Calculates distance to coastline
+  # 4. Applies classification rules based on elevation and location
+
+  # Notes:
+  # - If elevation data is unavailable, falls back to boundary-based classification
+  # - Coastal classification takes precedence if within distance threshold
+  # - Western Ghats classification requires both geographic region match AND elevation threshold
+  # - Plateau is the default category for interior regions not meeting other criteria
