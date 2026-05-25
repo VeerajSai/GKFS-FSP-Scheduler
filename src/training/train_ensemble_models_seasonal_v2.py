@@ -557,7 +557,7 @@ def calculate_metrics(
     within_10pct = (pct_errors <= 10).mean() * 100
     within_15pct = (pct_errors <= 15).mean() * 100
 
-    # Directional accuracy: did we predict increase/decrease correctly?
+    # Directional accuracy (did we predict increase/decrease correctlyGKFS)
     if len(y_true) > 1:
         actual_direction = np.diff(y_true) > 0
         pred_direction = np.diff(y_pred) > 0

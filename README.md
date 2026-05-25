@@ -1,225 +1,369 @@
 # GKFS FSP Scheduler
 
-GKFS FSP Scheduler is a Python and Streamlit based forecasting workflow for evaluating Forecasting Service Provider schedules and selecting the best available forecast for wind power scheduling operations.
+A Python and Streamlit-based forecasting workflow for evaluating Forecasting Service Provider (FSP) schedules and selecting the optimal wind power forecast for grid scheduling operations.
 
-The repository contains application code, training and inference pipelines, configuration, and tests. Proprietary company datasets, generated outputs, trained models, experiment runs, and operational exports are intentionally excluded from Git.
+---
 
 ## Data Governance
 
-This repository must not contain company data or datasets.
+This repository contains source code only. Company data, operational datasets, trained models, experiment runs, and generated artifacts must not be committed to version control under any circumstances.
 
-The following local-only paths are ignored by Git:
+Paths permanently excluded by `.gitignore`:
 
-- `data/`
-- `outputs/`
-- `model_savesss/`
-- `mlruns/`
-- `perf_rpt/`
-- `notebooks/`
-- generated reports, images, spreadsheets, parquet files, CSV files, and model binaries
+| Path | Contents |
+|------|----------|
+| `data/` | All raw and processed datasets (CSV, Parquet) |
+| `outputs/` | Trained model artifacts, predictions, plots, reports |
+| `model_savesss/` | Per-plant model saves |
+| `mlruns/` | MLflow experiment tracking runs |
+| `perf_rpt/` | Operational performance report exports |
+| `notebooks/` | Jupyter notebooks |
 
-Keep all source datasets and generated artifacts on the local machine or an approved internal storage system. Do not upload them to GitHub.
+All `*.csv`, `*.parquet`, `*.xlsx`, `*.pkl`, `*.joblib`, `*.h5`, and generated image files are also excluded globally.
+
+All company data must remain on the local machine or an approved internal storage system.
+
+---
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    A[Local company data<br/>CSV and operational exports] --> B[Local data processing<br/>src/data/csv_to_parquet.py]
-    B --> C[Per-plant processed datasets<br/>local data directory only]
-    C --> D[Feature engineering<br/>time, categorical, rolling features]
-    D --> E[Temporal split<br/>train, validation, test]
-    E --> F[Model training<br/>Ridge, LightGBM, XGBoost, ensembles]
-    F --> G[Local model artifacts<br/>ignored by Git]
-    G --> H[Inference pipeline<br/>predict power and evaluate FSPs]
-    H --> I[FSP selection<br/>closest forecast to model prediction]
-    I --> J[Streamlit dashboards<br/>interactive and operational views]
-    J --> K[Local reports and exports<br/>ignored by Git]
 
-    L[Configuration<br/>configs/config.yaml] --> B
-    L --> D
-    L --> F
-    L --> H
+    subgraph Sources["Data Sources (Local Only - Not Committed)"]
+        S1[Actual Power Measurements]
+        S2[FSP Schedule Forecasts]
+        S3[Meteorological Forecasts]
+        S4[Plant Metadata]
+    end
 
-    M[Tests<br/>unit and workflow checks] --> D
-    M --> H
+    subgraph Ingestion["Data Ingestion and Preprocessing"]
+        I1["CSV to Parquet Conversion
+src/data/csv_to_parquet.py"]
+        I2["Data Validation and Pivoting
+src/data/preprocessing.py"]
+        I3["Plant Topology Classification
+src/analysis/plant_topology_classifier.py"]
+    end
+
+    subgraph Features["Feature Engineering"]
+        F1["Time and Cyclical Features
+src/features/feature_engineering.py"]
+        F2["Rolling Window Statistics"]
+        F3["Variance-Based Dataset Splitting
+src/data/variance_split.py"]
+        F4["Variance-Specific Features
+src/features/variance_features.py"]
+    end
+
+    subgraph Training["Model Training"]
+        T1[Temporal Train / Validation / Test Split]
+        T2[Ridge Regression]
+        T3[LightGBM]
+        T4["Ensemble Combiner
+src/models/ensemble_model.py"]
+        T5["Seasonal Variant Training
+src/training/train_ensemble_models_seasonal_v3.py"]
+        T6["Variance-Aware Training
+src/training/train_ensemble_models_variance_v4.py"]
+        T2 --> T4
+        T3 --> T4
+    end
+
+    subgraph Artifacts["Local Model Artifacts (Git-Ignored)"]
+        A1["Saved Models
+outputs/models/"]
+        A2["Prediction Outputs
+outputs/predictions/"]
+        A3["Performance Reports
+outputs/reports/"]
+    end
+
+    subgraph Inference["Inference and FSP Selection"]
+        IS1["Inference Pipeline
+src/inference/inference_pipeline.py"]
+        IS2[FSP Score Calculation]
+        IS3[Best-Forecast Selection per Scheduling Block]
+        IS1 --> IS2 --> IS3
+    end
+
+    subgraph Applications["Streamlit Applications"]
+        AP1["Modular Workflow App
+streamlit_app.py"]
+        AP2["Operational Dashboard
+operational_app.py"]
+    end
+
+    Config["Configuration
+configs/config.yaml
+configs/topology_config.yaml"]
+
+    Sources --> Ingestion
+    Ingestion --> Features
+    Features --> Training
+    Training --> Artifacts
+    Artifacts --> Inference
+    Inference --> Applications
+
+    Config --> Ingestion
+    Config --> Training
+    Config --> Inference
 ```
+
+---
 
 ## Repository Structure
 
 ```text
-app/                 Streamlit page modules and dashboard utilities
-configs/             Project configuration files
-docs/                Project documentation that is safe to version
-src/                 Data processing, features, training, inference, evaluation
-tests/               Unit and workflow tests
-launch_app.py        Streamlit launcher
-operational_app.py   Operational Streamlit dashboard
-run_pipeline.py      Command line pipeline runner
-streamlit_app.py     Modular Streamlit application entry point
-requirements.txt     Python dependencies
+GKFS-FSP-Scheduler/
+├── app/
+│   ├── pages/
+│   │   ├── data_selection.py         Plant and data loading with gap visualisation
+│   │   ├── feature_engineering.py    Interactive feature creation
+│   │   ├── fsp_selection.py          FSP selection logic and results
+│   │   ├── model_comparison.py       Side-by-side model performance comparison
+│   │   ├── model_training.py         Training UI with hyperparameter controls
+│   │   └── predictions_viz.py        Prediction visualisation and analysis
+│   └── utils/
+│       ├── model_builders.py         Ensemble and deep learning model builders
+│       ├── ollama_insights.py        AI-assisted insights generation
+│       └── page_summary.py           Page context and summary rendering
+├── configs/
+│   ├── config.yaml                   Primary project configuration
+│   └── topology_config.yaml          Plant topology classification settings
+├── docs/
+│   ├── OPERATIONAL_UI_DOCUMENTATION.md
+│   └── PLANT_TOPOLOGY_CLASSIFICATION.md
+├── src/
+│   ├── analysis/
+│   │   ├── plant_topology_classifier.py   Geographic and elevation-based classification
+│   │   └── wind_variance_analysis.py      Wind variability pattern analysis
+│   ├── data/
+│   │   ├── csv_to_parquet.py         CSV ingestion and per-plant conversion pipeline
+│   │   ├── preprocessing.py          Data validation and column pivoting
+│   │   ├── variance_split.py         Variance-category dataset splitting
+│   │   └── run_all_plants.py         Batch runner for all-plant CSV processing
+│   ├── evaluation/
+│   │   └── variance_evaluation.py    Evaluation metrics for variance models
+│   ├── features/
+│   │   ├── feature_engineering.py    Time-based, categorical, and rolling features
+│   │   └── variance_features.py      Variance-specific feature creation
+│   ├── inference/
+│   │   └── inference_pipeline.py     Model loading and prediction generation
+│   ├── models/
+│   │   ├── ensemble_model.py         Ridge and LightGBM ensemble definition
+│   │   └── sequence_models.py        LSTM and GRU sequence model definitions
+│   └── training/
+│       ├── train_ensemble_models.py              Base ensemble training
+│       ├── train_ensemble_models_seasonal.py     Seasonal ensemble (v1)
+│       ├── train_ensemble_models_seasonal_v2.py  Seasonal with quantile regression
+│       ├── train_ensemble_models_seasonal_v3.py  Seasonal with weighted ensembles
+│       ├── train_ensemble_models_variance_v4.py  Variance-aware ensemble training
+│       ├── train_ensemble_models_variance_v4_optimized.py  Optimised variance training
+│       ├── train_models.py                       Alternative training pipeline
+│       ├── train_models_v2.py                    Training pipeline v2
+│       ├── train_variance_temporal_split.py      Temporal-split variance training
+│       └── train_and_save_models_standalone.py   Standalone multi-plant trainer
+├── tests/
+│   ├── test_data_processing.py       Data pipeline unit tests
+│   ├── test_gui_workflow.py          GUI workflow integration tests
+│   ├── test_streamlit_app.py         Streamlit application tests
+│   ├── train_and_save_ensemble.py    Ensemble training verification
+│   └── verify_sample_flow.py         End-to-end sample flow check
+├── launch_app.py                     Dependency-checking Streamlit launcher
+├── operational_app.py                Operational Streamlit dashboard
+├── run_pipeline.py                   CLI pipeline orchestrator
+├── streamlit_app.py                  Modular application entry point
+└── requirements.txt                  Python dependencies
 ```
 
-Local-only directories such as `data/`, `outputs/`, `model_savesss/`, `mlruns/`, `perf_rpt/`, and `notebooks/` are excluded from version control.
+Local-only directories (`data/`, `outputs/`, `model_savesss/`, `mlruns/`, `perf_rpt/`, `notebooks/`) are excluded from version control.
+
+---
 
 ## Setup
 
-Create and activate a virtual environment:
+### Prerequisites
+
+- Python 3.9 or higher
+- pip
+
+### Installation
 
 ```bash
 python -m venv .venv
+
+# Windows
 .venv\Scripts\activate
-```
 
-Install dependencies:
+# Linux / macOS
+source .venv/bin/activate
 
-```bash
 pip install -r requirements.txt
 ```
 
-Prepare local data under `data/raw/` using the approved internal source files:
+### Local Data Setup
 
-```text
-data/raw/actualdata.csv
-data/raw/scheduledata.csv
-data/raw/forecastdata.csv
+Place source data files under `data/raw/` (these are ignored by Git and must not be committed):
+
+```
+data/
+└── raw/
+    ├── actualdata.csv
+    ├── scheduledata.csv
+    └── forecastdata.csv
 ```
 
-These files are ignored by Git and must remain local.
+---
 
 ## Running the Applications
 
-Launch the modular Streamlit workflow:
-
+**Modular workflow application:**
 ```bash
 streamlit run streamlit_app.py
 ```
 
-Launch the operational dashboard:
-
+**Operational dashboard:**
 ```bash
 streamlit run operational_app.py
 ```
 
-Use the helper launcher:
-
+**Dependency-checking launcher:**
 ```bash
 python launch_app.py
 ```
 
-## Data Processing
+---
 
-Process raw CSV files into local per-plant datasets:
+## Data Processing Pipeline
+
+Convert raw CSV exports into per-plant Parquet datasets:
 
 ```bash
 python src/data/csv_to_parquet.py --input data/raw --output data/processed
 ```
 
-Process a specific station:
+Process a single station:
 
 ```bash
-python src/data/csv_to_parquet.py --input data/raw --output data/processed --station SAMPLE_PSS
+python src/data/csv_to_parquet.py --input data/raw --output data/processed --station PLANT_NAME
 ```
 
-The generated parquet and CSV files remain ignored by Git.
+Run batch processing for all plants:
+
+```bash
+python src/data/run_all_plants.py
+```
+
+Run via the CLI orchestrator:
+
+```bash
+python run_pipeline.py
+```
+
+All generated Parquet and CSV files are saved locally and are excluded from Git.
+
+---
 
 ## Model Training
 
-Run the standard ensemble training script:
-
+**Standard ensemble (Ridge + LightGBM):**
 ```bash
-python src/train_ensemble_models.py
+python src/training/train_ensemble_models.py
 ```
 
-Run seasonal model training:
-
+**Seasonal ensemble with quantile regression:**
 ```bash
-python src/train_ensemble_models_seasonal_v3.py
+python src/training/train_ensemble_models_seasonal_v3.py
 ```
 
-Run the pipeline helper:
+**Variance-aware ensemble:**
+```bash
+python src/training/train_ensemble_models_variance_v4.py
+```
 
+**Standalone multi-plant trainer:**
+```bash
+python src/training/train_and_save_models_standalone.py
+```
+
+**Skip data processing and run training only:**
 ```bash
 python run_pipeline.py --skip-processing
 ```
 
-Model files, prediction outputs, plots, and reports are generated under ignored local artifact directories.
+Model artifacts, prediction CSVs, and reports are written to `outputs/` which is excluded from Git.
+
+---
 
 ## Testing
 
-Run the focused unit tests:
+Run data processing tests:
 
 ```bash
 python -m pytest tests/test_data_processing.py -q
 ```
 
-Run the full test suite after installing all optional runtime dependencies and ensuring local model artifacts are present:
+Run the full test suite (requires local model artifacts to be present):
 
 ```bash
 python -m pytest
 ```
 
+---
+
 ## Configuration
 
-Primary project settings are defined in:
+Both configuration files are versioned and must contain non-sensitive settings only.
 
-```text
-configs/config.yaml
-configs/topology_config.yaml
-```
+| File | Purpose |
+|------|---------|
+| `configs/config.yaml` | Data paths, training ratios, FSP provider list, model hyperparameters |
+| `configs/topology_config.yaml` | Plant classification thresholds, elevation API settings, geographic boundaries |
 
-These files should contain only non-secret configuration. Runtime secrets, credentials, and private endpoints should be supplied through environment variables or local-only configuration files ignored by Git.
+Runtime credentials, private API endpoints, and secrets must be supplied via environment variables or local files excluded by `.gitignore`. Do not commit them.
 
-Optional local environment variables:
-
-```text
-OLLAMA_BASE_URL=http://localhost:11434
-```
+---
 
 ## Git Safety Checklist
 
-Before pushing:
+Before every push, verify that no data or model artifacts are staged:
 
 ```bash
 git status --short
 git ls-files
-git ls-files --others --exclude-standard
 ```
 
-Confirm that no datasets, model binaries, spreadsheets, generated reports, MLflow runs, or company exports appear in the tracked file list.
-
-Expected safe source areas include:
+The tracked file list should contain only source code. Expected safe paths:
 
 - `app/`
 - `configs/`
 - `docs/`
 - `src/`
 - `tests/`
-- root Python entry points
-- `README.md`
-- `.gitignore`
-- `.gitattributes`
-- `requirements.txt`
+- Root Python entry points
+- `README.md`, `.gitignore`, `.gitattributes`, `requirements.txt`
+
+If any CSV, Parquet, Excel, pickle, or image file appears, remove it with `git rm --cached <file>` and verify `.gitignore` covers that pattern before pushing.
+
+---
 
 ## Remote Repository
 
-Target repository:
-
-```text
+```
 https://github.com/VeerajSai/GKFS-FSP-Scheduler.git
 ```
 
-After reviewing `git status`, create the first commit and push:
+Push to origin:
 
 ```bash
-git add .
-git commit -m "Prepare repository for source-only release"
-git branch -M main
 git remote add origin https://github.com/VeerajSai/GKFS-FSP-Scheduler.git
 git push -u origin main
 ```
 
-If `origin` already exists, update it instead:
+If the remote is already set:
 
 ```bash
 git remote set-url origin https://github.com/VeerajSai/GKFS-FSP-Scheduler.git
+git push
 ```

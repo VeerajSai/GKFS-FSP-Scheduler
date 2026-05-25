@@ -10,6 +10,7 @@ This tests:
 
 import sys
 from pathlib import Path
+import streamlit as st
 import pandas as pd
 import numpy as np
 
@@ -25,23 +26,20 @@ from src.data.preprocessing import (
 )
 from src.features.feature_engineering import create_temporal_split
 
-def make_mock_fsp_data(periods=100):
-    return pd.DataFrame({
-        'timestamp': pd.date_range('2025-01-01', periods=periods, freq='h'),
-        'actual_power': np.random.rand(periods) * 100,
-        'forecast_power_fa_provider_a': np.random.rand(periods) * 100,
-        'forecast_power_fa_provider_b': np.random.rand(periods) * 100,
-        'forecast_power_fa_provider_c': np.random.rand(periods) * 100,
-    })
-
-
 def test_fsp_detection():
     """Test that FSP detection works dynamically."""
     print("\n" + "="*60)
     print("TEST 1: Dynamic FSP Detection")
     print("="*60)
 
-    mock_data = make_mock_fsp_data()
+    # Create mock data with FSPs
+    mock_data = pd.DataFrame({
+        'timestamp': pd.date_range('2025-01-01', periods=100, freq='H'),
+        'actual_power': np.random.rand(100) * 100,
+        'forecast_power_fa_provider_a': np.random.rand(100) * 100,
+        'forecast_power_fa_provider_b': np.random.rand(100) * 100,
+        'forecast_power_fa_provider_c': np.random.rand(100) * 100,
+    })
 
     # Test get_fsp_forecast_columns
     fsp_cols = get_fsp_forecast_columns(mock_data)
@@ -55,15 +53,14 @@ def test_fsp_detection():
     assert all(isinstance(fsp, str) for fsp in fsp_names), "All FSP names should be strings"
 
     print(" FSP Detection Test PASSED\n")
+    return mock_data
 
 
-def test_fsp_error_calculation():
+def test_fsp_error_calculation(df):
     """Test that FSP error calculation works dynamically."""
     print("="*60)
     print("TEST 2: Dynamic FSP Error Calculation")
     print("="*60)
-
-    df = make_mock_fsp_data()
 
     # Test calculate_fsp_errors
     df_with_errors = calculate_fsp_errors(df.copy(), 'actual_power')
@@ -76,16 +73,15 @@ def test_fsp_error_calculation():
         print(f" Created {error_col}")
 
     print(" FSP Error Calculation Test PASSED\n")
+    return df_with_errors
 
 
-def test_oracle_selection():
+def test_oracle_selection(df_with_errors):
     """Test oracle FSP selection."""
     print("="*60)
     print("TEST 3: Oracle FSP Selection")
     print("="*60)
 
-    df = make_mock_fsp_data()
-    df_with_errors = calculate_fsp_errors(df.copy(), 'actual_power')
     df_oracle = select_best_fsp_oracle(df_with_errors.copy())
 
     assert 'oracle_best_fsp' in df_oracle.columns, "Missing oracle_best_fsp column"
@@ -132,7 +128,7 @@ def test_temporal_split():
     print("="*60)
 
     mock_data = pd.DataFrame({
-        'timestamp': pd.date_range('2025-01-01', periods=1000, freq='h'),
+        'timestamp': pd.date_range('2025-01-01', periods=1000, freq='H'),
         'actual_power': np.random.rand(1000) * 100,
         'forecast_power_fa_provider_a': np.random.rand(1000) * 100,
     })
@@ -198,9 +194,9 @@ if __name__ == "__main__":
 
     try:
         # Run all tests
-        test_fsp_detection()
-        test_fsp_error_calculation()
-        test_oracle_selection()
+        df = test_fsp_detection()
+        df_with_errors = test_fsp_error_calculation(df)
+        test_oracle_selection(df_with_errors)
         test_session_state_initialization()
         test_temporal_split()
         test_dynamic_feature_selection()

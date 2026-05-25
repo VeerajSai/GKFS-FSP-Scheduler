@@ -48,7 +48,7 @@ def train_and_save():
         df = df.sort_values('timestamp').reset_index(drop=True)
 
     # Pivot if needed (check if wide or long)
-    # Sample Plant dataset is usually long; pivot if required.
+    # Sample Plant dataset is usually long, need pivotGKFS
     # Actually, the parquet might be already preprocessed/pivoted if it's in 'processed'.
     # Let's check columns.
     if 'sscode' in df.columns:
@@ -65,7 +65,7 @@ def train_and_save():
     # Define target
     target_col = 'actual_power' # Simplified target
     if target_col not in df.columns:
-        # Check if multiple FSP columns exist; use a numeric fallback if needed.
+        # Check if we have multiple FSPs, maybe sum themGKFS
         numeric_cols = df.select_dtypes(include=[np.number]).columns
         if len(numeric_cols) > 0:
             target_col = numeric_cols[-1] # Pick last one as dummy target if actual not found

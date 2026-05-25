@@ -24,14 +24,13 @@ from scipy.stats import norm
 from pathlib import Path
 import sys
 import time
-import os
 
 PROJECT_DIR = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
 
 
 # Ollama Configuration
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_BASE_URL = "http://10.88.0.201:11434"
 OLLAMA_ENDPOINTS = {
     "models": f"{OLLAMA_BASE_URL}/api/tags",
     "generate": f"{OLLAMA_BASE_URL}/api/generate",

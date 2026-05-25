@@ -23,7 +23,7 @@ if not hasattr(st, 'session_state'):
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("SAMPLE_TEST")
 
-def verify_sample_flow():
+def verify_ratnagiri_flow():
     dataset_path = PROJECT_DIR / 'data' / 'processed' / 'parquet' / 'sample_pss_dataset.parquet'
     logger.info(f"1. Locating Sample Plant Data at {dataset_path}...")
 
@@ -140,7 +140,7 @@ def verify_sample_flow():
 
 if __name__ == "__main__":
     try:
-        sys.exit(0 if verify_sample_flow() else 1)
+        sys.exit(0 if verify_ratnagiri_flow() else 1)
     except Exception as e:
         logger.exception("Verification failed with exception")
         sys.exit(1)

@@ -25,6 +25,7 @@ ENV/
 .vscode/
 .idea/
 .cursor/
+.claude/
 *.swp
 *.swo
 *~
@@ -39,14 +40,14 @@ htmlcov/
 logs/
 
 # Local notebooks and scratch work
-/notebooks/
-/temp_tests/
-/plans/
-/skills/
+notebooks/
+temp_tests/
+plans/
+skills/
 
 # Company data, datasets, and generated data products
 /data/
-/perf_rpt/
+perf_rpt/
 *.csv
 *.tsv
 *.parquet
@@ -56,9 +57,9 @@ logs/
 *.jsonl
 
 # Trained models, experiment tracking, and generated ML artifacts
-/outputs/
-/model_savesss/
-/mlruns/
+outputs/
+model_savesss/
+mlruns/
 *.pkl
 *.joblib
 *.h5
@@ -69,7 +70,7 @@ logs/
 *.pth
 
 # Local/generated reports and internal working documents
-/reports/
+reports/
 DOD*.md
 PROPOSAL.md
 PROJECT_REPORT.md

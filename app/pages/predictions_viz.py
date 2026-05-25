@@ -1874,7 +1874,7 @@ def visualize_quantile_forecasts():
 
             except Exception as e:
                 st.warning(f"Could not generate insights: {str(e)}")
-                st.info("Insights generation requires an Ollama server configured with OLLAMA_BASE_URL.")
+                st.info(" Insights generation requires Ollama server at http://10.88.0.201:11434")
     elif plot_mode == "Date Range":
         st.markdown("##### Date-Range Quantile Ribbon")
         st.plotly_chart(

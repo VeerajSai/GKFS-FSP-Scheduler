@@ -10,8 +10,6 @@ Run with: pytest test_streamlit_app.py
 import sys
 from pathlib import Path
 
-import pytest
-
 # Add project root to path
 PROJECT_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
@@ -19,8 +17,6 @@ sys.path.insert(0, str(PROJECT_DIR))
 
 def test_imports():
     """Test that all page modules can be imported."""
-    pytest.importorskip("streamlit")
-
     try:
         from app.pages import (
             data_selection,

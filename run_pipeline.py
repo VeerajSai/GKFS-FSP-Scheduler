@@ -120,11 +120,11 @@ def main():
     print("-"*70)
 
     # Option to run notebooks via nbconvert (headless)
-    print("\nWould you like to run notebooks automatically? (headless mode)")
+    print("\nWould you like to run notebooks automaticallyGKFS (headless mode)")
     print("This will execute all cells and save outputs to the notebooks.")
 
     try:
-        response = input("\nRun automatically? [y/N]: ").strip().lower()
+        response = input("\nRun automaticallyGKFS [y/N]: ").strip().lower()
     except:
         response = 'n'
 

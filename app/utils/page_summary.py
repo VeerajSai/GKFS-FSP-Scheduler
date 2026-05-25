@@ -34,15 +34,15 @@ def render_page_summary(page_name: str, page_context: str, model: Optional[str] 
 Context: {page_context}
 
 OUTPUT EXACTLY IN THIS FORMAT - NO EXCEPTIONS:
-- First point here
-- Second point here
-- Third point here
-- Fourth point here
-- Fifth point here
+ First point here
+ Second point here
+ Third point here
+ Fourth point here
+ Fifth point here
 
 RULES:
 1. Return ONLY the 5 bullet points above
-2. Each bullet is ONE line starting with "- "
+2. Each bullet is ONE line starting with " "
 3. NO text before, after, or between bullets
 4. NO paragraphs
 5. Each point is 8-15 words max
@@ -66,12 +66,14 @@ Generate now:"""
         for line in lines:
             line = line.strip()
             # Handle various bullet formats
-            if line.startswith('-'):
-                bullet_lines.append('- ' + line.lstrip('-').strip())
+            if line.startswith(''):
+                bullet_lines.append(line)
+            elif line.startswith('-'):
+                bullet_lines.append('' + line[1:])
             elif line and not any(skip in line.lower() for skip in ['format', 'rules:', 'output', 'generate']):
                 # If it looks like content, add bullet
                 if len(line) > 5 and len(line) < 150:
-                    bullet_lines.append('- ' + line)
+                    bullet_lines.append(' ' + line)
 
         # Take only first 5-6 bullets
         bullet_lines = bullet_lines[:6]
@@ -80,10 +82,10 @@ Generate now:"""
         if bullet_lines:
             formatted_output = '\n\n'.join(bullet_lines)
         else:
-            formatted_output = "Page summary could not be generated"
+            formatted_output = " Page summary could not be generated"
 
         # Display in a collapsible expander using code block for strict formatting
-        with st.expander("What can you do on this page? (AI Summary)", expanded=False):
+        with st.expander(" **What can you do on this pageGKFS** (AI Summary)", expanded=False):
             # Use st.text instead of markdown to preserve exact formatting
             st.text(formatted_output)
 
