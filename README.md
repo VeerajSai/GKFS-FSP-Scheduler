@@ -30,84 +30,95 @@ All company data must remain on the local machine or an approved internal storag
 ```mermaid
 flowchart TD
 
-    subgraph Sources["Data Sources (Local Only - Not Committed)"]
-        S1[Actual Power Measurements]
-        S2[FSP Schedule Forecasts]
-        S3[Meteorological Forecasts]
-        S4[Plant Metadata]
+    %% ── Colour palette ───────────────────────────────────────────────────────
+    classDef srcStyle      fill:#1B2B4B,stroke:#4A9FE0,stroke-width:2px,color:#D6EAF8,font-weight:bold
+    classDef ingestStyle   fill:#0D3B3B,stroke:#26A69A,stroke-width:2px,color:#E0F2F1
+    classDef featStyle     fill:#2D1B4E,stroke:#9B59B6,stroke-width:2px,color:#F5EEF8
+    classDef splitStyle    fill:#1B3B1B,stroke:#52BE80,stroke-width:2px,color:#EAFAF1
+    classDef ridgeStyle    fill:#2B1500,stroke:#E59866,stroke-width:2px,color:#FAE5D3
+    classDef lgbmStyle     fill:#2B1500,stroke:#F39C12,stroke-width:2px,color:#FEF9E7
+    classDef ensStyle      fill:#3B0000,stroke:#E74C3C,stroke-width:3px,color:#FADBD8,font-weight:bold
+    classDef artifactStyle fill:#1A1A1A,stroke:#7F8C8D,stroke-width:2px,color:#D5D8DC,font-style:italic
+    classDef inferStyle    fill:#0D1F3B,stroke:#3498DB,stroke-width:2px,color:#D6EAF8
+    classDef appStyle      fill:#1A0D3B,stroke:#8E44AD,stroke-width:2px,color:#E8DAEF
+    classDef cfgStyle      fill:#2B2A00,stroke:#D4AC0D,stroke-width:2px,color:#FEF9E7
+
+    %% ── Data Sources ─────────────────────────────────────────────────────────
+    subgraph SRC["  DATA SOURCES   —   local only, never committed to Git"]
+        direction LR
+        S1[("Actual Power\nMeasurements")]:::srcStyle
+        S2[("FSP Schedule\nForecasts")]:::srcStyle
+        S3[("Meteorological\nForecasts")]:::srcStyle
+        S4[("Plant Metadata\n& Topology")]:::srcStyle
     end
 
-    subgraph Ingestion["Data Ingestion and Preprocessing"]
-        I1["CSV to Parquet Conversion
-src/data/csv_to_parquet.py"]
-        I2["Data Validation and Pivoting
-src/data/preprocessing.py"]
-        I3["Plant Topology Classification
-src/analysis/plant_topology_classifier.py"]
+    %% ── Ingestion ────────────────────────────────────────────────────────────
+    subgraph ING["  INGESTION   —   CSV to Parquet · Validation · Topology Classification"]
+        direction LR
+        I1["csv_to_parquet.py\nsrc/data/"]:::ingestStyle
+        I2["preprocessing.py\nvalidation & pivoting"]:::ingestStyle
+        I3["plant_topology_classifier.py\nCoastal / Plateau / W. Ghats"]:::ingestStyle
+        I1 --> I2 --> I3
     end
 
-    subgraph Features["Feature Engineering"]
-        F1["Time and Cyclical Features
-src/features/feature_engineering.py"]
-        F2["Rolling Window Statistics"]
-        F3["Variance-Based Dataset Splitting
-src/data/variance_split.py"]
-        F4["Variance-Specific Features
-src/features/variance_features.py"]
+    %% ── Feature Engineering ──────────────────────────────────────────────────
+    subgraph FE["  FEATURE ENGINEERING   —   src/features/"]
+        direction LR
+        F1["Time & Cyclical Features\nfeature_engineering.py"]:::featStyle
+        F2["Rolling Window Statistics\n24-block lookback"]:::featStyle
+        F3["Variance-Based Splitting\nvariance_split.py"]:::featStyle
+        F4["Variance-Specific Features\nvariance_features.py"]:::featStyle
     end
 
-    subgraph Training["Model Training"]
-        T1[Temporal Train / Validation / Test Split]
-        T2[Ridge Regression]
-        T3[LightGBM]
-        T4["Ensemble Combiner
-src/models/ensemble_model.py"]
-        T5["Seasonal Variant Training
-src/training/train_ensemble_models_seasonal_v3.py"]
-        T6["Variance-Aware Training
-src/training/train_ensemble_models_variance_v4.py"]
-        T2 --> T4
-        T3 --> T4
+    %% ── Training ─────────────────────────────────────────────────────────────
+    subgraph TRN["  MODEL TRAINING   —   src/training/"]
+        SP1[/"Train  70%\nhistorical baseline"/]:::splitStyle
+        SP2[/"Validation  15%\nhyperparameter tuning"/]:::splitStyle
+        SP3[/"Test  15%\nfinal evaluation"/]:::splitStyle
+        SP1 & SP2 & SP3
+        M1["Ridge Regression\nscaled features  ·  weight 40%"]:::ridgeStyle
+        M2["LightGBM\nraw features  ·  weight 60%"]:::lgbmStyle
+        ENS{{"Weighted Ensemble\n0.4 × Ridge   +   0.6 × LightGBM\nsrc/models/ensemble_model.py"}}:::ensStyle
+        SP1 --> M1 & M2
+        M1 --> ENS
+        M2 --> ENS
     end
 
-    subgraph Artifacts["Local Model Artifacts (Git-Ignored)"]
-        A1["Saved Models
-outputs/models/"]
-        A2["Prediction Outputs
-outputs/predictions/"]
-        A3["Performance Reports
-outputs/reports/"]
+    %% ── Artifacts ────────────────────────────────────────────────────────────
+    subgraph ART["  LOCAL ARTIFACTS   —   git-ignored, never pushed"]
+        direction LR
+        A1[("Saved Models\noutputs/models/")]:::artifactStyle
+        A2[("Predictions\noutputs/predictions/")]:::artifactStyle
+        A3[("Reports\noutputs/reports/")]:::artifactStyle
     end
 
-    subgraph Inference["Inference and FSP Selection"]
-        IS1["Inference Pipeline
-src/inference/inference_pipeline.py"]
-        IS2[FSP Score Calculation]
-        IS3[Best-Forecast Selection per Scheduling Block]
+    %% ── Inference & Selection ────────────────────────────────────────────────
+    subgraph INF["  INFERENCE & FSP SELECTION   —   per 15-minute block"]
+        direction LR
+        IS1["Inference Pipeline\nsrc/inference/inference_pipeline.py"]:::inferStyle
+        IS2["FSP Score Calculation\n|forecast − prediction|"]:::inferStyle
+        IS3["Best-Forecast Selection\nminimum-error FSP per block"]:::inferStyle
         IS1 --> IS2 --> IS3
     end
 
-    subgraph Applications["Streamlit Applications"]
-        AP1["Modular Workflow App
-streamlit_app.py"]
-        AP2["Operational Dashboard
-operational_app.py"]
+    %% ── Applications ─────────────────────────────────────────────────────────
+    subgraph APP["  APPLICATIONS"]
+        direction LR
+        AP1(["Modular Workflow App\nstreamlit_app.py"]):::appStyle
+        AP2(["Operational Dashboard\noperational_app.py"]):::appStyle
+        AP3(["RAG Chatbot\nOllama  ·  qwen3:8b"]):::appStyle
     end
 
-    Config["Configuration
-configs/config.yaml
-configs/topology_config.yaml"]
+    %% ── Configuration (cross-cutting) ────────────────────────────────────────
+    CFG(["Configuration\nconfig.yaml  ·  topology_config.yaml"]):::cfgStyle
 
-    Sources --> Ingestion
-    Ingestion --> Features
-    Features --> Training
-    Training --> Artifacts
-    Artifacts --> Inference
-    Inference --> Applications
+    %% ── Main pipeline flow ───────────────────────────────────────────────────
+    SRC --> ING --> FE --> TRN --> ART --> INF --> APP
 
-    Config --> Ingestion
-    Config --> Training
-    Config --> Inference
+    %% ── Config feeds ─────────────────────────────────────────────────────────
+    CFG --> ING
+    CFG --> TRN
+    CFG --> INF
 ```
 
 ---
